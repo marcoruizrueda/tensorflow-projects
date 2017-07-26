@@ -1,3 +1,19 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+# Imports
+import os
+import numpy as np
+import tensorflow as tf
+
+from tensorflow.contrib import learn
+from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_fn_lib
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
+tf.logging.set_verbosity(tf.logging.INFO)
+
+
 def cnn_model_fn(features, labels, mode):
   """Model function for CNN. 
      Example from: https://www.tensorflow.org/tutorials/layers#create_the_estimator"""
@@ -62,3 +78,46 @@ def cnn_model_fn(features, labels, mode):
   # Return a ModelFnOps object
   return model_fn_lib.ModelFnOps(
       mode=mode, predictions=predictions, loss=loss, train_op=train_op)
+
+
+def main(unused_argv):
+  # Load training and eval data
+  mnist = learn.datasets.load_dataset("mnist")
+  train_data = mnist.train.images # Returns np.array
+  train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
+  eval_data = mnist.test.images # Returns np.array
+  eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
+
+  # Create the Estimator
+  mnist_classifier = learn.Estimator(
+      model_fn=cnn_model_fn, model_dir="/tmp/mnist_convnet_model")
+
+  # Set up logging for predictions
+  tensors_to_log = {"probabilities": "softmax_tensor"}
+  logging_hook = tf.train.LoggingTensorHook(
+      tensors=tensors_to_log, every_n_iter=500)
+
+  # Train the model
+  mnist_classifier.fit(
+    x=train_data,
+    y=train_labels,
+    batch_size=100,
+    steps=20000,
+    monitors=[logging_hook])
+
+  # Configure the accuracy metric for evaluation
+  metrics = {
+    "accuracy":
+        learn.MetricSpec(
+            metric_fn=tf.metrics.accuracy, prediction_key="classes"),
+	}
+
+  # Evaluate the model and print results
+  eval_results = mnist_classifier.evaluate(
+    x=eval_data, y=eval_labels, metrics=metrics)
+  print(eval_results)
+
+
+if __name__ == "__main__":
+  tf.app.run()
+
