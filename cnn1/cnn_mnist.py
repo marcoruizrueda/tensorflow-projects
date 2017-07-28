@@ -84,7 +84,10 @@ def main(unused_argv):
   # Load training and eval data
   mnist = learn.datasets.load_dataset("mnist")
   train_data = mnist.train.images # Returns np.array
+  #print(train_data.shape)
+  #print(train_data[1:5,240:280])
   train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
+  #print(train_labels[1:10])
   eval_data = mnist.test.images # Returns np.array
   eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
 
