@@ -6,6 +6,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import tensorflow as tf
+import images2array as i2a
 
 from tensorflow.contrib import learn
 from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_fn_lib
@@ -48,14 +49,14 @@ def cnn_model_fn(features, labels, mode):
       inputs=dense, rate=0.4, training = (mode == learn.ModeKeys.TRAIN) ) #40% of elements will be randomly dropped out during training.
 
   # Logits Layer
-  logits = tf.layers.dense(inputs=dropout, units=10) #Raw values
+  logits = tf.layers.dense(inputs=dropout, units=2) #Raw values
 
   loss = None
   train_op = None
 
   # Calculate Loss (for both TRAIN and EVAL modes)
   if mode != learn.ModeKeys.INFER:
-    onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
+    onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=2)
     loss = tf.losses.softmax_cross_entropy(
         onehot_labels=onehot_labels, logits=logits)
 
@@ -82,11 +83,12 @@ def cnn_model_fn(features, labels, mode):
 
 def main(unused_argv):
   # Load training and eval data
-  train_data = mnist.train.images # Returns np.array
-  train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
-  eval_data = mnist.test.images # Returns np.array
-  eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
+  train_data, train_labels = i2a.main(folderPath='bears/train/', ext='*.jpg')
+  train_labels = np.asarray(train_labels, dtype=np.int32)  
 
+  eval_data, eval_labels = i2a.main(folderPath='bears/test/', ext='*.jpg')
+  eval_labels = np.asarray(eval_labels, dtype=np.int32) 
+  
   # Create the Estimator
   mnist_classifier = learn.Estimator(
       model_fn=cnn_model_fn, model_dir="/tmp/mnist_convnet_model")
