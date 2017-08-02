@@ -1,5 +1,0 @@
-Extracting MNIST-data/train-images-idx3-ubyte.gz
-Extracting MNIST-data/train-labels-idx1-ubyte.gz
-Extracting MNIST-data/t10k-images-idx3-ubyte.gz
-Extracting MNIST-data/t10k-labels-idx1-ubyte.gz
-{'loss': 0.037327535, 'global_step': 100000, 'accuracy': 0.9878}

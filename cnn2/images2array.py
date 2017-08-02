@@ -25,14 +25,14 @@ def flat_pixels(imageFolderPath, ext):
 
 def do_labels(num_imagens, label):
 	"""---."""
-	labels_path = numpy.full((num_imagens, 1), label)	
+	labels_path = numpy.ones(num_imagens, dtype=numpy.int32)*label
 	
 	return labels_path
 
 
 def main(folderPath, ext):
 	"""---."""
-	label = 0
+	label = -1
 	labels = []
 	features = []
 	
@@ -48,7 +48,7 @@ def main(folderPath, ext):
 				labels = labels_path
 			else:
 				features = numpy.vstack((features, features_path))
-				labels = numpy.vstack((labels, labels_path))
+				labels = numpy.hstack((labels, labels_path))
 	
 	return features, labels
 

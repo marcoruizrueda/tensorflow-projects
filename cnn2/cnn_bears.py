@@ -16,13 +16,17 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 
 def cnn_model_fn(features, labels, mode):
-  """Model function for CNN. 
-     Example from: https://www.tensorflow.org/tutorials/layers#create_the_estimator"""
-  
+  """Model function for CNN."""
   # Input Layer
-  input_layer = tf.reshape(features, [-1, 120, 120, 3])
+  # Reshape X to 4-D tensor: [batch_size, width, height, channels]
+  # MNIST images are 28x28 pixels, and have one color channel
+  input_layer = tf.reshape(features, [-1, 28, 28, 3])
 
   # Convolutional Layer #1
+  # Computes 32 features using a 5x5 filter with ReLU activation.
+  # Padding is added to preserve width and height.
+  # Input Tensor Shape: [batch_size, 28, 28, 1]
+  # Output Tensor Shape: [batch_size, 28, 28, 32]
   conv1 = tf.layers.conv2d(
       inputs=input_layer,
       filters=32,
@@ -31,25 +35,48 @@ def cnn_model_fn(features, labels, mode):
       activation=tf.nn.relu)
 
   # Pooling Layer #1
-  pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2) #stride=[3, 6] for w and h, 50% reduction 
+  # First max pooling layer with a 2x2 filter and stride of 2
+  # Input Tensor Shape: [batch_size, 28, 28, 32]
+  # Output Tensor Shape: [batch_size, 14, 14, 32]
+  pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
 
-  # Convolutional Layer #2 and Pooling Layer #2
+  # Convolutional Layer #2
+  # Computes 64 features using a 5x5 filter.
+  # Padding is added to preserve width and height.
+  # Input Tensor Shape: [batch_size, 14, 14, 32]
+  # Output Tensor Shape: [batch_size, 14, 14, 64]
   conv2 = tf.layers.conv2d(
       inputs=pool1,
       filters=64,
       kernel_size=[5, 5],
       padding="same",
       activation=tf.nn.relu)
-  pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2) 
+
+  # Pooling Layer #2
+  # Second max pooling layer with a 2x2 filter and stride of 2
+  # Input Tensor Shape: [batch_size, 14, 14, 64]
+  # Output Tensor Shape: [batch_size, 7, 7, 64]
+  pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
+
+  # Flatten tensor into a batch of vectors
+  # Input Tensor Shape: [batch_size, 7, 7, 64]
+  # Output Tensor Shape: [batch_size, 7 * 7 * 64]
+  pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
 
   # Dense Layer
-  pool2_flat = tf.reshape(pool2, [-1, 30 * 30 * 64]) #Flat featMap:7(pool2 width)*7(pool2 height)*64(pool2 channels)=[batch_size, 3136]
+  # Densely connected layer with 1024 neurons
+  # Input Tensor Shape: [batch_size, 7 * 7 * 64]
+  # Output Tensor Shape: [batch_size, 1024]
   dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
-  dropout = tf.layers.dropout(
-      inputs=dense, rate=0.4, training = (mode == learn.ModeKeys.TRAIN) ) #40% of elements will be randomly dropped out during training.
 
-  # Logits Layer
-  logits = tf.layers.dense(inputs=dropout, units=2) #Raw values
+  # Add dropout operation; 0.6 probability that element will be kept
+  dropout = tf.layers.dropout(
+      inputs=dense, rate=0.4, training=mode == learn.ModeKeys.TRAIN)
+
+  # Logits layer
+  # Input Tensor Shape: [batch_size, 1024]
+  # Output Tensor Shape: [batch_size, 10]
+  logits = tf.layers.dense(inputs=dropout, units=2)
 
   loss = None
   train_op = None
@@ -83,42 +110,47 @@ def cnn_model_fn(features, labels, mode):
 
 def main(unused_argv):
   # Load training and eval data
-  train_data, train_labels = i2a.main(folderPath='bears/train/', ext='*.jpg')
-  train_labels = np.asarray(train_labels, dtype=np.int32)  
+  train_data, train_labels = i2a.main(folderPath='bears/28x28/train/', ext='*.jpg')
+  train_data = np.asarray(train_data, dtype=np.float32)  
+  print(train_data.shape)
+  print(train_labels.shape)
 
-  eval_data, eval_labels = i2a.main(folderPath='bears/test/', ext='*.jpg')
-  eval_labels = np.asarray(eval_labels, dtype=np.int32) 
-  
+  eval_data, eval_labels = i2a.main(folderPath='bears/28x28/test/', ext='*.jpg')
+  eval_data = np.asarray(eval_data, dtype=np.float32) 
+  print(eval_data.shape)
+  print(eval_labels.shape)
+  print(train_data[0:100])
+
   # Create the Estimator
   mnist_classifier = learn.Estimator(
-      model_fn=cnn_model_fn, model_dir="/tmp/mnist_convnet_model")
+      model_fn=cnn_model_fn, model_dir="/tmp/bears_convnet_model")
 
   # Set up logging for predictions
+  # Log the values in the "Softmax" tensor with label "probabilities"
   tensors_to_log = {"probabilities": "softmax_tensor"}
   logging_hook = tf.train.LoggingTensorHook(
-      tensors=tensors_to_log, every_n_iter=500)
+      tensors=tensors_to_log, every_n_iter=50)
 
   # Train the model
   mnist_classifier.fit(
-    x=train_data,
-    y=train_labels,
-    batch_size=100,
-    steps=20000,
-    monitors=[logging_hook])
+      x=train_data,
+      y=train_labels,
+      batch_size=100,
+      steps=20000,
+      monitors=[logging_hook])
 
   # Configure the accuracy metric for evaluation
   metrics = {
-    "accuracy":
-        learn.MetricSpec(
-            metric_fn=tf.metrics.accuracy, prediction_key="classes"),
-	}
+      "accuracy":
+          learn.MetricSpec(
+              metric_fn=tf.metrics.accuracy, prediction_key="classes"),
+  }
 
   # Evaluate the model and print results
   eval_results = mnist_classifier.evaluate(
-    x=eval_data, y=eval_labels, metrics=metrics)
+      x=eval_data, y=eval_labels, metrics=metrics)
   print(eval_results)
 
 
 if __name__ == "__main__":
   tf.app.run()
-
