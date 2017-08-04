@@ -1,5 +1,5 @@
 
-import  numpy
+import  numpy as np
 import glob
 from skimage import io
 import numpy.matlib
@@ -16,7 +16,7 @@ def flat_pixels(imageFolderPath, ext):
 		if featues_path==[]:
 			featues_path = feat_im
 		else:
-			featues_path = numpy.vstack((featues_path, feat_im))
+			featues_path = np.vstack((featues_path, feat_im))
 		#print(img)
 
 	#Return flatten pixels from images of path
@@ -25,7 +25,7 @@ def flat_pixels(imageFolderPath, ext):
 
 def do_labels(num_imagens, label):
 	"""---."""
-	labels_path = numpy.ones(num_imagens, dtype=numpy.int32)*label
+	labels_path = np.ones(num_imagens, dtype=np.int32)*label
 	
 	return labels_path
 
@@ -47,8 +47,8 @@ def main(folderPath, ext):
 				features = features_path
 				labels = labels_path
 			else:
-				features = numpy.vstack((features, features_path))
-				labels = numpy.hstack((labels, labels_path))
+				features = np.vstack((features, features_path))
+				labels = np.hstack((labels, labels_path))
 	
 	return features, labels
 

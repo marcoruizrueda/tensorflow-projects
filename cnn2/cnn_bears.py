@@ -10,7 +10,7 @@ import images2array as i2a
 
 from tensorflow.contrib import learn
 from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_fn_lib
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

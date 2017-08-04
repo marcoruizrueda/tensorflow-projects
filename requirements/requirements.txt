@@ -1,0 +1,5 @@
+os 
+tensorflow-gpu
+sklearn
+scikit-learn
+scikit-image
